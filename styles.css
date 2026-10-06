@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IMOSE CRM</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="loginView" class="auth-block">
+      <div class="auth-card">
+        <h1>IMOSE CRM</h1>
+        <p>Mobile Phone Repair Customer Service</p>
+
+        <label>Username</label>
+        <input id="usernameInput" type="text" placeholder="Enter username" />
+
+        <label>Password</label>
+        <input id="passwordInput" type="password" placeholder="Enter password" />
+
+        <button id="loginButton">Login</button>
+        <div id="loginMessage" class="error-message"></div>
+        <small>Default: admin / admin123</small>
+      </div>
+    </div>
+
+    <div id="appView" class="hidden">
+      <header class="topbar">
+        <div>
+          <h2>IMOSE CRM</h2>
+        </div>
+        <div class="user-box">
+          <span id="loggedUser">Admin</span>
+          <button id="logoutButton" class="secondary-btn">Logout</button>
+        </div>
+      </header>
+
+      <nav class="nav-tabs">
+        <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="nav-btn" data-tab="customers">Customers</button>
+        <button class="nav-btn" data-tab="tickets">Repair Tickets</button>
+        <button class="nav-btn" data-tab="inventory">Inventory</button>
+        <button class="nav-btn" data-tab="invoices">Invoices</button>
+      </nav>
+
+      <main class="content">
+        <section id="dashboardPanel" class="tab-panel active">
+          <div class="cards">
+            <div class="card">
+              <span>Total Customers</span>
+              <strong id="totalCustomers">0</strong>
+            </div>
+            <div class="card">
+              <span>Pending Tickets</span>
+              <strong id="pendingTickets">0</strong>
+            </div>
+            <div class="card">
+              <span>Inventory Items</span>
+              <strong id="inventoryCount">0</strong>
+            </div>
+            <div class="card">
+              <span>Outstanding Invoices</span>
+              <strong id="outstandingInvoices">0</strong>
+            </div>
+          </div>
+        </section>
+
+        <section id="customersPanel" class="tab-panel">
+          <div class="panel-header">
+            <h3>Customers</h3>
+          </div>
+
+          <form id="customerForm" class="form-grid">
+            <input id="customerName" type="text" placeholder="Customer name" required />
+            <input id="customerPhone" type="text" placeholder="Phone" required />
+            <input id="customerEmail" type="email" placeholder="Email" />
+            <input id="customerAddress" type="text" placeholder="Address" />
+            <button type="submit">Add Customer</button>
+          </form>
+
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="customerTableBody"></tbody>
+          </table>
+        </section>
+
+        <section id="ticketsPanel" class="tab-panel">
+          <div class="panel-header">
+            <h3>Repair Tickets</h3>
+          </div>
+
+          <form id="ticketForm" class="form-grid">
+            <select id="ticketCustomerSelect"></select>
+            <input id="ticketDeviceType" type="text" placeholder="Device type" required />
+            <input id="ticketModel" type="text" placeholder="Device model" />
+            <input id="ticketIssue" type="text" placeholder="Issue description" required />
+            <button type="submit">Create Ticket</button>
+          </form>
+
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Device</th>
+                <th>Model</th>
+                <th>Issue</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="ticketTableBody"></tbody>
+          </table>
+        </section>
+
+        <section id="inventoryPanel" class="tab-panel">
+          <div class="panel-header">
+            <h3>Parts Inventory</h3>
+          </div>
+
+          <form id="inventoryForm" class="form-grid">
+            <input id="partName" type="text" placeholder="Part name" required />
+            <input id="partCode" type="text" placeholder="Part code" />
+            <input id="partQty" type="number" placeholder="Qty" min="0" required />
+            <input id="partPrice" type="number" placeholder="Unit price" min="0" step="0.01" required />
+            <input id="partSupplier" type="text" placeholder="Supplier" />
+            <button type="submit">Add Part</button>
+          </form>
+
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Code</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Supplier</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTableBody"></tbody>
+          </table>
+        </section>
+
+        <section id="invoicesPanel" class="tab-panel">
+          <div class="panel-header">
+            <h3>Invoices</h3>
+          </div>
+
+          <form id="invoiceForm" class="form-grid">
+            <select id="invoiceCustomerSelect"></select>
+            <select id="invoiceTicketSelect"></select>
+            <input id="invoiceAmount" type="number" placeholder="Amount" min="0" step="0.01" required />
+            <input id="invoiceMethod" type="text" placeholder="Payment method" />
+            <button type="submit">Create Invoice</button>
+          </form>
+
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Ticket</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Method</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="invoiceTableBody"></tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>

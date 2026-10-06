@@ -1,0 +1,311 @@
+const loginView = document.getElementById('loginView');
+const appView = document.getElementById('appView');
+const loginButton = document.getElementById('loginButton');
+const logoutButton = document.getElementById('logoutButton');
+const usernameInput = document.getElementById('usernameInput');
+const passwordInput = document.getElementById('passwordInput');
+const loginMessage = document.getElementById('loginMessage');
+const loggedUser = document.getElementById('loggedUser');
+
+const state = { user: null, data: null, activeTab: 'dashboard' };
+
+async function loadData() {
+  state.data = await window.electronAPI.getAppData();
+  renderAll();
+}
+
+function showLogin() {
+  loginView.classList.remove('hidden');
+  appView.classList.add('hidden');
+}
+
+function showApp(user) {
+  state.user = user;
+  loggedUser.textContent = user.username;
+  loginView.classList.add('hidden');
+  appView.classList.remove('hidden');
+  loadData();
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!username || !password) {
+    loginMessage.textContent = 'Please enter username and password.
+';
+    return;
+  }
+
+  const user = await window.electronAPI.login(username, password);
+
+  if (!user) {
+    loginMessage.textContent = 'Invalid username or password.';
+    return;
+  }
+
+  loginMessage.textContent = '';
+  showApp(user);
+}
+
+function logout() {
+  state.user = null;
+  showLogin();
+  usernameInput.value = '';
+  passwordInput.value = '';
+}
+
+function updateDashboard() {
+  const data = state.data || { customers: [], repairTickets: [], inventory: [], invoices: [] };
+  const totalCustomers = data.customers.length;
+  const pendingTickets = data.repairTickets.filter((ticket) => ticket.status === 'Pending').length;
+  const inventoryCount = data.inventory.length;
+  const outstandingInvoices = data.invoices.filter((invoice) => invoice.status !== 'Paid').length;
+
+  document.getElementById('totalCustomers').textContent = totalCustomers;
+  document.getElementById('pendingTickets').textContent = pendingTickets;
+  document.getElementById('inventoryCount').textContent = inventoryCount;
+  document.getElementById('outstandingInvoices').textContent = outstandingInvoices;
+}
+
+function populateSelect(select, options, placeholder, valueKey, labelKey) {
+  select.innerHTML = '';
+
+  const placeholderOption = document.createElement('option');
+  placeholderOption.value = '';
+  placeholderOption.textContent = placeholder;
+  placeholderOption.disabled = true;
+  placeholderOption.selected = true;
+  select.appendChild(placeholderOption);
+
+  options.forEach((item) => {
+    const option = document.createElement('option');
+    option.value = item[valueKey];
+    option.textContent = item[labelKey];
+    select.appendChild(option);
+  });
+}
+
+function renderCustomers() {
+  const { customers = [] } = state.data || {};
+  const tableBody = document.getElementById('customerTableBody');
+  tableBody.innerHTML = '';
+
+  customers.forEach((customer) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${customer.id}</td>
+      <td>${customer.name}</td>
+      <td>${customer.phone}</td>
+      <td>${customer.email || ''}</td>
+      <td>${customer.address || ''}</td>
+      <td><button class="action-btn delete" data-delete-customer="${customer.id}">Delete</button></td>
+    `;
+    tableBody.appendChild(row);
+  });
+
+  document.querySelectorAll('[data-delete-customer]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const customerId = button.getAttribute('data-delete-customer');
+      state.data = await window.electronAPI.deleteCustomer(customerId);
+      renderAll();
+    });
+  });
+}
+
+function renderTickets() {
+  const { repairTickets = [] } = state.data || {};
+  const tableBody = document.getElementById('ticketTableBody');
+  tableBody.innerHTML = '';
+
+  repairTickets.forEach((ticket) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${ticket.id}</td>
+      <td>${ticket.customerName}</td>
+      <td>${ticket.deviceType}</td>
+      <td>${ticket.model || ''}</td>
+      <td>${ticket.issue}</td>
+      <td>${ticket.status}</td>
+      <td><button class="status-btn" data-ticket-status="${ticket.id}">Update</button></td>
+    `;
+    tableBody.appendChild(row);
+  });
+
+  document.querySelectorAll('[data-ticket-status]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const ticketId = Number(button.getAttribute('data-ticket-status'));
+      const currentStatus = state.data.repairTickets.find((ticket) => ticket.id === ticketId)?.status || 'Pending';
+      const options = ['Pending', 'In Progress', 'Completed', 'On Hold'];
+      const nextIndex = (options.indexOf(currentStatus) + 1) % options.length;
+      const newStatus = options[nextIndex];
+      state.data = await window.electronAPI.updateTicketStatus(ticketId, newStatus);
+      renderAll();
+    });
+  });
+}
+
+function renderInventory() {
+  const { inventory = [] } = state.data || {};
+  const tableBody = document.getElementById('inventoryTableBody');
+  tableBody.innerHTML = '';
+
+  inventory.forEach((item) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${item.id}</td>
+      <td>${item.partName}</td>
+      <td>${item.code || ''}</td>
+      <td>${item.quantity}</td>
+      <td>${Number(item.unitPrice || 0).toLocaleString()}</td>
+      <td>${item.supplier || ''}</td>
+      <td><button class="action-btn delete" data-delete-part="${item.id}">Delete</button></td>
+    `;
+    tableBody.appendChild(row);
+  });
+
+  document.querySelectorAll('[data-delete-part]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const partId = button.getAttribute('data-delete-part');
+      state.data = await window.electronAPI.deletePart(partId);
+      renderAll();
+    });
+  });
+}
+
+function renderInvoices() {
+  const { invoices = [], repairTickets = [] } = state.data || {};
+  const tableBody = document.getElementById('invoiceTableBody');
+  tableBody.innerHTML = '';
+
+  invoices.forEach((invoice) => {
+    const ticket = repairTickets.find((entry) => entry.id === invoice.ticketId);
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${invoice.id}</td>
+      <td>${invoice.customerName}</td>
+      <td>${ticket ? ticket.deviceType : invoice.ticketId}</td>
+      <td>${Number(invoice.amount || 0).toLocaleString()}</td>
+      <td>${invoice.status}</td>
+      <td>${invoice.method || ''}</td>
+      <td>
+        ${invoice.status !== 'Paid' ? '<button class="status-btn" data-mark-paid="' + invoice.id + '">Mark Paid</button>' : ''}
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+
+  document.querySelectorAll('[data-mark-paid]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const invoiceId = Number(button.getAttribute('data-mark-paid'));
+      state.data = await window.electronAPI.markInvoicePaid(invoiceId);
+      renderAll();
+    });
+  });
+}
+
+function renderAll() {
+  if (!state.data) return;
+  updateDashboard();
+  renderCustomers();
+  renderTickets();
+  renderInventory();
+  renderInvoices();
+
+  const { customers = [], repairTickets = [] } = state.data;
+  populateSelect(document.getElementById('ticketCustomerSelect'), customers, 'Select customer', 'id', 'name');
+  populateSelect(document.getElementById('invoiceCustomerSelect'), customers, 'Select customer', 'id', 'name');
+  populateSelect(document.getElementById('invoiceTicketSelect'), repairTickets, 'Select ticket', 'id', 'deviceType');
+}
+
+loginButton.addEventListener('click', handleLogin);
+logoutButton.addEventListener('click', logout);
+
+const navButtons = document.querySelectorAll('.nav-btn');
+navButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    navButtons.forEach((btn) => btn.classList.remove('active'));
+    button.classList.add('active');
+
+    const tab = button.getAttribute('data-tab');
+    document.querySelectorAll('.tab-panel').forEach((panel) => {
+      panel.classList.toggle('active', panel.id === `${tab}Panel`);
+    });
+  });
+});
+
+document.getElementById('customerForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const payload = {
+    name: document.getElementById('customerName').value.trim(),
+    phone: document.getElementById('customerPhone').value.trim(),
+    email: document.getElementById('customerEmail').value.trim(),
+    address: document.getElementById('customerAddress').value.trim()
+  };
+
+  if (!payload.name || !payload.phone) {
+    return;
+  }
+
+  state.data = await window.electronAPI.addCustomer(payload);
+  event.target.reset();
+  renderAll();
+});
+
+document.getElementById('ticketForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const payload = {
+    customerId: document.getElementById('ticketCustomerSelect').value,
+    deviceType: document.getElementById('ticketDeviceType').value.trim(),
+    model: document.getElementById('ticketModel').value.trim(),
+    issue: document.getElementById('ticketIssue').value.trim()
+  };
+
+  if (!payload.customerId || !payload.deviceType || !payload.issue) {
+    return;
+  }
+
+  state.data = await window.electronAPI.addRepairTicket(payload);
+  event.target.reset();
+  renderAll();
+});
+
+document.getElementById('inventoryForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const payload = {
+    partName: document.getElementById('partName').value.trim(),
+    code: document.getElementById('partCode').value.trim(),
+    quantity: document.getElementById('partQty').value,
+    unitPrice: document.getElementById('partPrice').value,
+    supplier: document.getElementById('partSupplier').value.trim()
+  };
+
+  if (!payload.partName) {
+    return;
+  }
+
+  state.data = await window.electronAPI.addPart(payload);
+  event.target.reset();
+  renderAll();
+});
+
+document.getElementById('invoiceForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const payload = {
+    customerId: document.getElementById('invoiceCustomerSelect').value,
+    ticketId: document.getElementById('invoiceTicketSelect').value,
+    amount: document.getElementById('invoiceAmount').value,
+    method: document.getElementById('invoiceMethod').value.trim()
+  };
+
+  if (!payload.customerId || !payload.ticketId || !payload.amount) {
+    return;
+  }
+
+  state.data = await window.electronAPI.addInvoice(payload);
+  event.target.reset();
+  renderAll();
+});
+
+showLogin();

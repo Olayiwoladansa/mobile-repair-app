@@ -1,0 +1,14 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  login: (username, password) => ipcRenderer.invoke('login', username, password),
+  getAppData: () => ipcRenderer.invoke('getAppData'),
+  addCustomer: (customer) => ipcRenderer.invoke('addCustomer', customer),
+  deleteCustomer: (customerId) => ipcRenderer.invoke('deleteCustomer', customerId),
+  addRepairTicket: (ticket) => ipcRenderer.invoke('addRepairTicket', ticket),
+  updateTicketStatus: (ticketId, status) => ipcRenderer.invoke('updateTicketStatus', ticketId, status),
+  addPart: (part) => ipcRenderer.invoke('addPart', part),
+  deletePart: (partId) => ipcRenderer.invoke('deletePart', partId),
+  addInvoice: (invoice) => ipcRenderer.invoke('addInvoice', invoice),
+  markInvoicePaid: (invoiceId) => ipcRenderer.invoke('markInvoicePaid', invoiceId)
+});
